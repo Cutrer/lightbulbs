@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: games
-    description: A collection of video game information.
+    description: A collection of video game information. This is autobiographical.
     database: coastal-sector-372312
     tables:
       - name: my_played_games
