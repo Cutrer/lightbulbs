@@ -2,11 +2,18 @@ version: 2
 
 sources:
   - name: games
-    description: A collection of video game information. This is autobiographical.
+    description: A collection of video game information.
     database: coastal-sector-372312
     tables:
       - name: my_played_games
+        description: This is an autobiographical list of all the games I have played.
 #        loaded_at_field: _etl_loaded_at
 #        freshness:
 #          warn_after: {count: 12, period: hour}
 #          error_after: {count: 24, period: hour}
+      - name: nes
+        description: This is a list of all of the released games for the Nintendo Entertainment System.
+      - name: gb
+        description: This is a list of all of the released games for the Nintendo Gameboy.
+      - name: snes
+        description: This is a list of all of the released games for the Super Nintendo Entertainment System.
