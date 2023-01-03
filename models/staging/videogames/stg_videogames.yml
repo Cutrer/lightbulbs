@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: stg_nes
+    description: Wikipedia table for all Nintendo Entertainment System games. It has been modified to include only games that were released in North America.
+    columns:
+      - name: RowNumber
+        description: This is the generated row number from the Python dataframe table generation.
+      - name: Title
+        description: This is the title of the game.
+      - name: Developer
+        description: This is the company who made the game.
+      - name: Publisher
+        description: This is the company who released the game into the North American market. Sometimes they can be the same company as the developer.
+      - name: Release_Date
+        description: This is the release date of the game. Sometimes the dates are a little generic.
