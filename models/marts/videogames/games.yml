@@ -1,0 +1,7 @@
+version: 2
+
+models:
+  - name: nintendo
+    materialized: table
+    description: This is a list of all games that were developed by Nintendo and released on the NES, Gameboy, and Super Nintendo consoles.
+    
