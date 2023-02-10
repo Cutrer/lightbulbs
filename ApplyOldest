@@ -1,0 +1,27 @@
+def apply_credits(credits, debits):
+    credits = sorted(credits, key=lambda x: x[1], reverse=True)
+    debits = sorted(debits, key=lambda x: x[1])
+    i, j = 0, 0
+    while i < len(credits) and j < len(debits):
+        if credits[i][0] >= debits[j][0]:
+            credits[i][0] -= debits[j][0]
+            debits[j][0] = 0
+            j += 1
+        else:
+            debits[j][0] -= credits[i][0]
+            credits[i][0] = 0
+            i += 1
+    return credits, debits
+
+credits = [(100, '2022-01-01'), (200, '2022-01-02'), (300, '2022-01-03')]
+debits = [(50, '2022-01-01'), (150, '2022-01-02'), (200, '2022-01-03')]
+
+applied_credits, remaining_debits = apply_credits(credits, debits)
+
+print("Applied Credits:")
+for credit in applied_credits:
+    print(credit[0], credit[1])
+
+print("Remaining Debits:")
+for debit in remaining_debits:
+    print(debit[0], debit[1])
