@@ -11,15 +11,17 @@ def apply_credits(credits, debits):
             debits[j][0] -= credits[i][0]
             credits[i][0] = 0
             i += 1
-    return credits, debits
+    remaining_credits = [credit for credit in credits if credit[0] > 0]
+    remaining_debits = [debit for debit in debits if debit[0] > 0]
+    return remaining_credits, remaining_debits
 
-credits = [(100, '2022-01-01'), (200, '2022-01-02'), (300, '2022-01-03')]
-debits = [(50, '2022-01-01'), (150, '2022-01-02'), (200, '2022-01-03')]
+credits = [[100, '2022-01-01'], [200, '2022-01-02'], [300, '2022-01-03']]
+debits = [[50, '2022-01-01'], [150, '2022-01-02'], [200, '2022-01-03']]
 
-applied_credits, remaining_debits = apply_credits(credits, debits)
+remaining_credits, remaining_debits = apply_credits(credits, debits)
 
-print("Applied Credits:")
-for credit in applied_credits:
+print("Remaining Credits:")
+for credit in remaining_credits:
     print(credit[0], credit[1])
 
 print("Remaining Debits:")
