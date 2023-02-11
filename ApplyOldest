@@ -1,29 +1,54 @@
-def apply_credits(credits, debits):
-    credits = sorted(credits, key=lambda x: x[1], reverse=True)
-    debits = sorted(debits, key=lambda x: x[1])
-    i, j = 0, 0
-    while i < len(credits) and j < len(debits):
-        if credits[i][0] >= debits[j][0]:
-            credits[i][0] -= debits[j][0]
-            debits[j][0] = 0
-            j += 1
-        else:
-            debits[j][0] -= credits[i][0]
-            credits[i][0] = 0
-            i += 1
-    remaining_credits = [credit for credit in credits if credit[0] > 0]
-    remaining_debits = [debit for debit in debits if debit[0] > 0]
-    return remaining_credits, remaining_debits
+import pandas as pd
 
-credits = [[100, '2022-01-01'], [200, '2022-01-02'], [300, '2022-01-03']]
-debits = [[50, '2022-01-01'], [150, '2022-01-02'], [200, '2022-01-03']]
+# Load the workbook into two separate dataframes
+debits_df = pd.read_excel("workbook.xlsx", sheet_name="Debits")
+credits_df = pd.read_excel("workbook.xlsx", sheet_name="Credits")
 
-remaining_credits, remaining_debits = apply_credits(credits, debits)
+# Assume that the debits and credits have columns named "Amount" and "Date"
+# Sort the debits and credits by date, in ascending order
+debits_df.sort_values(by=["Date"], inplace=True)
+credits_df.sort_values(by=["Date"], inplace=True)
 
-print("Remaining Credits:")
-for credit in remaining_credits:
-    print(credit[0], credit[1])
+# Keep track of the total remaining credits
+remaining_credits = credits_df["Amount"].sum()
 
-print("Remaining Debits:")
-for debit in remaining_debits:
-    print(debit[0], debit[1])
+# Keep track of the applied credits for each debit
+applied_credits = {}
+
+# Iterate through the debits, applying the credits to them in order
+for index, debit in debits_df.iterrows():
+    debit_amount = debit["Amount"]
+    debit_date = debit["Date"]
+    applied_to_debit = []
+    while remaining_credits > 0 and debit_amount > 0:
+        # Get the oldest remaining credit
+        credit = credits_df.iloc[0]
+        credit_amount = credit["Amount"]
+        credit_date = credit["Date"]
+        
+        # Check if the credit can be applied to the debit
+        if credit_date <= debit_date:
+            if credit_amount >= debit_amount:
+                # The entire debit can be covered by this credit
+                applied_to_debit.append((credit_date, credit_amount))
+                remaining_credits -= credit_amount
+                debit_amount = 0
+            else:
+                # Only part of the debit can be covered by this credit
+                applied_to_debit.append((credit_date, debit_amount))
+                remaining_credits -= debit_amount
+                debit_amount -= credit_amount
+        
+        # Remove the used credit from the list of credits
+        credits_df = credits_df.iloc[1:]
+    
+    # Save the applied credits for this debit
+    applied_credits[debit_date] = applied_to_debit
+
+# Print the applied credits for each debit
+for debit_date, credits in applied_credits.items():
+    print("Debit on", debit_date)
+    print("Applied credits:")
+    for credit in credits:
+        print("\t", credit[1], "on", credit[0])
+    print()
