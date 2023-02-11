@@ -1,54 +1,52 @@
-import pandas as pd
+import openpyxl
 
-# Load the workbook into two separate dataframes
-debits_df = pd.read_excel("workbook.xlsx", sheet_name="Debits")
-credits_df = pd.read_excel("workbook.xlsx", sheet_name="Credits")
+def clear_debits_credits(workbook_file):
+    # Load the workbook
+    wb = openpyxl.load_workbook(workbook_file)
 
-# Assume that the debits and credits have columns named "Amount" and "Date"
-# Sort the debits and credits by date, in ascending order
-debits_df.sort_values(by=["Date"], inplace=True)
-credits_df.sort_values(by=["Date"], inplace=True)
+    # Select the sheets that contain debits and credits
+    debits_sheet = wb['Debits']
+    credits_sheet = wb['Credits']
+    cleared_sheet = wb.create_sheet(title="Cleared Debits")
 
-# Keep track of the total remaining credits
-remaining_credits = credits_df["Amount"].sum()
+    # Define the starting row for each sheet
+    debits_start_row = 2
+    credits_start_row = 2
+    cleared_start_row = 2
 
-# Keep track of the applied credits for each debit
-applied_credits = {}
+    # Get the number of rows in the debits and credits sheets
+    debits_rows = debits_sheet.max_row
+    credits_rows = credits_sheet.max_row
 
-# Iterate through the debits, applying the credits to them in order
-for index, debit in debits_df.iterrows():
-    debit_amount = debit["Amount"]
-    debit_date = debit["Date"]
-    applied_to_debit = []
-    while remaining_credits > 0 and debit_amount > 0:
-        # Get the oldest remaining credit
-        credit = credits_df.iloc[0]
-        credit_amount = credit["Amount"]
-        credit_date = credit["Date"]
-        
-        # Check if the credit can be applied to the debit
-        if credit_date <= debit_date:
-            if credit_amount >= debit_amount:
-                # The entire debit can be covered by this credit
-                applied_to_debit.append((credit_date, credit_amount))
-                remaining_credits -= credit_amount
-                debit_amount = 0
+    # Keep track of the remaining credit balance
+    credit_balance = 0
+
+    # Loop through each debit
+    for debits_row in range(debits_start_row, debits_rows+1):
+        debit_amount = debits_sheet.cell(row=debits_row, column=2).value
+
+        # If there is a credit balance, use it to clear the debit
+        if credit_balance > 0:
+            if credit_balance >= debit_amount:
+                credit_balance -= debit_amount
+                cleared_sheet.cell(row=cleared_start_row, column=1).value = debits_sheet.cell(row=debits_row, column=1).value
+                cleared_sheet.cell(row=cleared_start_row, column=2).value = debit_amount
+                cleared_start_row += 1
             else:
-                # Only part of the debit can be covered by this credit
-                applied_to_debit.append((credit_date, debit_amount))
-                remaining_credits -= debit_amount
-                debit_amount -= credit_amount
-        
-        # Remove the used credit from the list of credits
-        credits_df = credits_df.iloc[1:]
-    
-    # Save the applied credits for this debit
-    applied_credits[debit_date] = applied_to_debit
+                debit_amount -= credit_balance
+                cleared_sheet.cell(row=cleared_start_row, column=1).value = debits_sheet.cell(row=debits_row, column=1).value
+                cleared_sheet.cell(row=cleared_start_row, column=2).value = credit_balance
+                cleared_start_row += 1
+                credit_balance = 0
 
-# Print the applied credits for each debit
-for debit_date, credits in applied_credits.items():
-    print("Debit on", debit_date)
-    print("Applied credits:")
-    for credit in credits:
-        print("\t", credit[1], "on", credit[0])
-    print()
+        # If there is no credit balance, find the oldest available credit to apply to the debit
+        while credit_balance < debit_amount and credits_start_row <= credits_rows:
+            credit_amount = credits_sheet.cell(row=credits_start_row, column=2).value
+            credit_balance += credit_amount
+            credits_start_row += 1
+
+    # Save the workbook
+    wb.save(workbook_file)
+
+# Example usage:
+clear_debits_credits("debits_credits.xlsx")
