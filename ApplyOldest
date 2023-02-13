@@ -1,52 +1,46 @@
-import openpyxl
+import pandas as pd
 
-def clear_debits_credits(workbook_file):
-    # Load the workbook
-    wb = openpyxl.load_workbook(workbook_file)
+# Load the debits and credits into pandas dataframes
+debits_df = pd.read_excel('drawdown.xlsx', sheet_name='Debit')
+credits_df = pd.read_excel('drawdown.xlsx', sheet_name='Credit')
 
-    # Select the sheets that contain debits and credits
-    debits_sheet = wb['Debits']
-    credits_sheet = wb['Credits']
-    cleared_sheet = wb.create_sheet(title="Cleared Debits")
+# Sort the debits and credits by date in ascending order
+debits_df = debits_df.sort_values(by='Date', ascending=True)
+credits_df = credits_df.sort_values(by='Date', ascending=True)
 
-    # Define the starting row for each sheet
-    debits_start_row = 2
-    credits_start_row = 2
-    cleared_start_row = 2
+# Initialize a list to store the cleared debits
+cleared_debits = []
 
-    # Get the number of rows in the debits and credits sheets
-    debits_rows = debits_sheet.max_row
-    credits_rows = credits_sheet.max_row
+# Initialize an index to keep track of the current debit being processed
+debit_index = 0
 
-    # Keep track of the remaining credit balance
-    credit_balance = 0
+# Iterate through the credits
+for credit_index, credit in credits_df.iterrows():
+    credit_amount = credit['Amount']
+    
+    # Iterate through the debits until the current credit is fully applied
+    while credit_amount > 0 and debit_index < len(debits_df):
+        debit = debits_df.iloc[debit_index]
+        debit_amount = debit['Amount']
+        
+        if debit_amount <= credit_amount:
+            # The current credit can fully clear the current debit
+            cleared_debits.append((debit['Date'], debit['Amount']))
+            credit_amount -= debit_amount
+            debit_index += 1
+        else:
+            # The current credit can partially clear the current debit
+            cleared_debits.append((debit['Date'], credit_amount))
+            debits_df.at[debit_index, 'Amount'] -= credit_amount
+            credit_amount = 0
 
-    # Loop through each debit
-    for debits_row in range(debits_start_row, debits_rows+1):
-        debit_amount = debits_sheet.cell(row=debits_row, column=2).value
+# Write the list of cleared debits to a new sheet in the workbook
+cleared_debits_df = pd.DataFrame(cleared_debits, columns=['Date', 'Amount'])
+writer = pd.ExcelWriter('drawdown.xlsx', engine='openpyxl', mode='a')
+cleared_debits_df.to_excel(writer, sheet_name='Cleared Debits', index=False)
+writer.save()
 
-        # If there is a credit balance, use it to clear the debit
-        if credit_balance > 0:
-            if credit_balance >= debit_amount:
-                credit_balance -= debit_amount
-                cleared_sheet.cell(row=cleared_start_row, column=1).value = debits_sheet.cell(row=debits_row, column=1).value
-                cleared_sheet.cell(row=cleared_start_row, column=2).value = debit_amount
-                cleared_start_row += 1
-            else:
-                debit_amount -= credit_balance
-                cleared_sheet.cell(row=cleared_start_row, column=1).value = debits_sheet.cell(row=debits_row, column=1).value
-                cleared_sheet.cell(row=cleared_start_row, column=2).value = credit_balance
-                cleared_start_row += 1
-                credit_balance = 0
-
-        # If there is no credit balance, find the oldest available credit to apply to the debit
-        while credit_balance < debit_amount and credits_start_row <= credits_rows:
-            credit_amount = credits_sheet.cell(row=credits_start_row, column=2).value
-            credit_balance += credit_amount
-            credits_start_row += 1
-
-    # Save the workbook
-    wb.save(workbook_file)
-
-# Example usage:
-clear_debits_credits("debits_credits.xlsx")
+# Print the list of cleared debits
+print('Cleared Debits:')
+for cleared_debit in cleared_debits:
+    print(cleared_debit)
