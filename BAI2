@@ -1,0 +1,42 @@
+import pandas as pd
+from openpyxl import Workbook
+
+# Define the BAI2 file path
+file_path = 'path/to/bai2/file.bai'
+
+# Define the Excel workbook path
+workbook_path = 'path/to/excel/workbook.xlsx'
+
+# Read the BAI2 file using pandas
+columns = ['Record Type', 'Routing Number', 'Account Number', 'Transaction Code', 'Transaction Amount']
+df = pd.read_csv(file_path, names=columns, header=None)
+
+# Create a dictionary to store the tables
+tables = {}
+
+# Group the data by record type
+groups = df.groupby('Record Type')
+
+# Create a table for each record type
+for record_type, group in groups:
+    table = group.copy()
+    table.drop(columns=['Record Type'], inplace=True)
+    tables[record_type] = table
+
+# Create a new Excel workbook
+wb = Workbook()
+
+# Write each table to a separate worksheet
+for record_type, table in tables.items():
+    # Select the active worksheet
+    ws = wb.create_sheet(title=f'Record Type {record_type}')
+    
+    # Write the column headers to the worksheet
+    ws.append(table.columns.tolist())
+
+    # Write the data to the worksheet
+    for row in table.itertuples(index=False):
+        ws.append(row)
+
+# Save the workbook
+wb.save(workbook_path)
